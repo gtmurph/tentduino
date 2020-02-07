@@ -9,18 +9,28 @@
   
   http://craigrcannon.com
   
+  Updated for BMP182 Barometer and NeoPixel LEDS
+  
+  Feb 2020
+  
 */
 
 #include <Wire.h>
-// barometer library from adafruit https://github.com/adafruit/Adafruit-BMP085-Library
-#include <Adafruit_BMP085.h>
-// LED library from adafruit https://github.com/adafruit/LPD8806
-#include "LPD8806.h"
-#include "SPI.h"
+// barometer library from adafruit https://github.com/adafruit/Adafruit-BMP183
+#include <Adafruit_BMP183.h>
+// LED library from adafruit https://github.com/adafruit/NeoPixel
+#include <Adafruit_NeoPixel.h>
 
 int dataPin = 2;
-int clockPin = 3;
 int switchPin = 8;
+// You can also use software SPI and define your own pins!
+#define BMP183_CLK  13
+#define BMP183_SDO  12  // AKA MISO
+#define BMP183_SDI  11  // AKA MOSI
+
+// You'll also need a chip-select pin, use any pin!
+#define BMP183_CS   10
+
 boolean lastButton = LOW;
 boolean currentButton = LOW;
 boolean lightSwitch = false;
@@ -31,16 +41,16 @@ int stripRed = 5;
 int stripGreen = 5;
 int stripBlue = 5;
 
-// I have a 2m strip with 64 LEDs in total
-LPD8806 strip = LPD8806(64, dataPin, clockPin);
+// I have a round with 12 LEDs in total
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(12, dataPin, NEO_GRB + NEO_KHZ800);
 
-Adafruit_BMP085 bmp;
+Adafruit_BMP183 bmp = Adafruit_BMP183(BMP183_CLK, BMP183_SDO, BMP183_SDI, BMP183_CS);
   
 void setup() {
   Serial.begin(9600);
   pinMode(switchPin, INPUT);
   if (!bmp.begin()) {
-	Serial.println("Could not find a valid BMP085 sensor, check wiring!");
+	Serial.println("Could not find a valid BMP183 sensor, check wiring!");
 	while (1) {}
   }
     // Start up the LED strip
@@ -76,7 +86,7 @@ void loop() {
     // reading and setting initial air pressure
     initialP();
     // reading current air pressure
-    double currentP = bmp.readPressure();
+    double currentP = bmp.getPressure();
     // finding change between the air pressure on start and the current
     // multiplying by 100000 to make the numbers easier to work with
     double deltaP = (currentP - startupReading)/startupReading * 100000;
@@ -158,7 +168,7 @@ void initialP()
   {
     if (firstLoop == true)
     {
-    startupReading = bmp.readPressure();
+    startupReading = bmp.getPressure();
     firstLoop = false;
     }
   }
@@ -190,4 +200,3 @@ void dither(uint32_t c, uint8_t wait) {
     delay(wait);
   }
 }
-
